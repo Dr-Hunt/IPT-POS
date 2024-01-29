@@ -1,0 +1,208 @@
+Imports System.Data.OleDb
+
+Public Class frmProducts
+    Private Sub frmProducts_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+        Call connection()
+        Call LoadProducts()
+        Call LoadProducts()
+        Call GetProdCode()
+        Call Category()
+        Call GetTotalProducts()
+    End Sub
+
+    Private Sub btnClose_Click(sender As Object, e As EventArgs) Handles btnClose.Click
+        Me.Close()
+    End Sub
+    Private Sub GetProdCode()
+        sql = "Select ProductCode from tblProducts order by ProductCode desc"
+        cmd = New OleDbCommand(sql, cn)
+        dr = cmd.ExecuteReader
+        If dr.Read = True Then
+            TxtProductCode.Text = Val(dr(0)) + 1
+        Else
+            TxtProductCode.Text = 100000
+        End If
+
+    End Sub
+
+    Private Sub LoadProducts()
+        sql = "Select * from qryProducts"
+        cmd = New OleDbCommand(sql, cn)
+        dr = cmd.ExecuteReader
+        Dim x As ListViewItem
+        ListView1.Items.Clear()
+        Do While dr.Read = True
+            x = New ListViewItem(dr("ProductCode").ToString)
+            x.SubItems.Add(dr("ProdName").ToString)
+            x.SubItems.Add(dr("ProdDescription").ToString)
+            x.SubItems.Add(dr("Category").ToString)
+            x.SubItems.Add(dr("Amount").ToString)
+            x.SubItems.Add(dr("Quantity").ToString)
+            x.SubItems.Add(dr("CriticalLevel").ToString)
+            x.SubItems.Add(dr("Status").ToString)
+            ListView1.Items.Add(x)
+        Loop
+    End Sub
+
+
+    Private Sub Category()
+        sql = "Select distinct Category from tblCategories"
+        cmd = New OleDbCommand(sql, cn)
+        Dim da As New OleDbDataAdapter(cmd)
+        Dim dt As New DataTable
+        da.Fill(dt)
+        With CboCategory
+            .DataSource = dt
+            .DisplayMember = "Category"
+        End With
+    End Sub
+
+    Private Sub GetTotalProducts()
+        sql = "Select sum(quantity) as Total from qryProducts"
+        cmd = New OleDbCommand(sql, cn)
+        dr = cmd.ExecuteReader
+        If dr.Read = True Then
+            LblTotal.Text = dr("Total")
+        End If
+    End Sub
+    Private Sub clear()
+        TxtProductName.Clear()
+        TxtProductDescription.Clear()
+        TxtAmount.Clear()
+        TxtCriticalLevel.Clear()
+        TxtQuantity.Clear()
+        GetProdCode()
+    End Sub
+
+
+    Private Sub txtSearch_TextChanged(sender As Object, e As EventArgs) Handles TxtSearch.TextChanged
+        sql = "Select * from qryProducts where ProdName Like '%" & TxtSearch.Text & "%'"
+        cmd = New OleDbCommand(sql, cn)
+        dr = cmd.ExecuteReader
+        Dim x As ListViewItem
+        ListView1.Items.Clear()
+        Do While dr.Read = True
+            x = New ListViewItem(dr("ProductCode").ToString)
+            x.SubItems.Add(dr("ProdName").ToString)
+            x.SubItems.Add(dr("ProdDescription").ToString)
+            x.SubItems.Add(dr("Category").ToString)
+            x.SubItems.Add((dr("Amount").ToString))
+            x.SubItems.Add(dr("Quantity").ToString)
+            x.SubItems.Add(dr("CriticalLevel").ToString)
+            x.SubItems.Add(dr("Status").ToString)
+            ListView1.Items.Add(x)
+
+        Loop
+    End Sub
+
+    Private Sub ListView1_SelectedIndexChanged(sender As Object, e As EventArgs) Handles ListView1.SelectedIndexChanged
+        If ListView1.SelectedItems.Count > 0 Then
+            TxtProductCode.Text = ListView1.SelectedItems(0).SubItems(0).Text
+            TxtProductName.Text = ListView1.SelectedItems(0).SubItems(1).Text
+            TxtProductDescription.Text = ListView1.SelectedItems(0).SubItems(2).Text
+            CboCategory.Text = ListView1.SelectedItems(0).SubItems(3).Text
+            TxtAmount.Text = ListView1.SelectedItems(0).SubItems(4).Text
+            TxtQuantity.Text = ListView1.SelectedItems(0).SubItems(5).Text
+            TxtCriticalLevel.Text = ListView1.SelectedItems(0).SubItems(6).Text
+            CboStatus.Text = ListView1.SelectedItems(0).SubItems(7).Text
+            CboStatus.Text = ListView1.SelectedItems(0).SubItems(7).Text
+
+        End If
+    End Sub
+
+    Private Sub btnCancel_Click(sender As Object, e As EventArgs)
+        clear()
+        GetProdCode()
+    End Sub
+    Private Sub AddProd()
+        Dim CategID As String = "C0"
+        Select Case CboCategory.Text
+            Case "Smartphone"
+                CategID = "C1"
+            Case "Tablet"
+                CategID = "C2"
+            Case "Earbud"
+                CategID = "C3"
+            Case "Watch"
+                CategID = "C4"
+        End Select
+        sql = "Insert into tblProducts ([ProductCode],[ProdName],[ProdDescription],[CategoryID],[Amount],[Quantity],[CriticalLevel],[Status])values([@ProductCode],[@ProdName],[@ProdDescription],[@CategoryID],[@Amount],[@Quantity],[@CriticalLevel],[@Status])"
+        cmd = New OleDbCommand(sql, cn)
+        With cmd
+            .Parameters.AddWithValue("[@ProductCode]", TxtProductCode.Text)
+            .Parameters.AddWithValue("[@ProdName]", TxtProductName.Text)
+            .Parameters.AddWithValue("[@ProdDescription]", TxtProductDescription.Text)
+            .Parameters.AddWithValue("[@CategoryID]", CategID)
+            .Parameters.AddWithValue("[@Amount]", TxtAmount.Text)
+            .Parameters.AddWithValue("[@Quantity]", TxtQuantity.Text)
+            .Parameters.AddWithValue("[@CriticalLevel]", TxtCriticalLevel.Text)
+            .Parameters.AddWithValue("[@Status", CboStatus.Text)
+            .ExecuteNonQuery()
+
+        End With
+        MsgBox("New Product Successfully Save!!", MsgBoxStyle.Information)
+        ActLogs("Added a new product")
+        clear()
+        LoadProducts()
+        GetProdCode()
+    End Sub
+    Private Sub btnSave_Click(sender As Object, e As EventArgs) Handles BtnSave.Click
+        If MsgBox("Do you want to add new product?", vbQuestion + vbYesNo) = vbYes Then
+            If TxtProductCode.Text = "" Or TxtProductName.Text = "" Then
+                MsgBox("Please complete the product information", MsgBoxStyle.Exclamation)
+            Else
+                AddProd()
+            End If
+        End If
+
+    End Sub
+    Private Sub UpdateProd()
+        Dim CategID As String = "C0"
+        Select Case CboCategory.Text
+            Case "Smartphone"
+                CategID = "C1"
+            Case "Tablet"
+                CategID = "C2"
+            Case "Earbud"
+                CategID = "C3"
+            Case "Watch"
+                CategID = "C4"
+        End Select
+        sql = "Update tblProducts Set [ProdName]=[@ProdName],[ProdDescription]=[@ProdDescription],[CategoryID]=[@CategoryID],[Amount]=[@Amount],[Quantity]=[@Quantity],[CriticalLevel]=[@CriticalLevel],[Status]=[@Status] where [ProductCode]=[@ProductCode]"
+        cmd = New OleDbCommand(sql, cn)
+        With cmd
+            .Parameters.AddWithValue("[@ProdName]", TxtProductName.Text)
+            .Parameters.AddWithValue("[@ProdDescription]", TxtProductDescription.Text)
+            .Parameters.AddWithValue("[@CategoryID]", CboCategory.Text)
+            .Parameters.AddWithValue("[@Amount]", TxtAmount.Text)
+            .Parameters.AddWithValue("[@Quantity]", TxtQuantity.Text)
+            .Parameters.AddWithValue("[@CriticalLevel]", TxtCriticalLevel.Text)
+            .Parameters.AddWithValue("[@Status", CboStatus.Text)
+            .Parameters.AddWithValue("[@ProductCode]", TxtProductCode.Text)
+            .ExecuteNonQuery()
+
+        End With
+        MsgBox("Product Successfully Updated!!", MsgBoxStyle.Information)
+        ActLogs("Updated a product")
+        clear()
+        LoadProducts()
+        GetProdCode()
+    End Sub
+    Private Sub btnUpdate_Click(sender As Object, e As EventArgs) Handles BtnUpdate.Click
+        If MsgBox("Do you want to update the product?", vbQuestion + vbYesNo) = vbYes Then
+            If TxtProductCode.Text = "" Or TxtProductName.Text = "" Then
+                MsgBox("Please complete the product information", MsgBoxStyle.Exclamation)
+            Else
+                UpdateProd()
+            End If
+        End If
+    End Sub
+    Private Sub BtnClear_Click_1(sender As Object, e As EventArgs) Handles BtnClear.Click
+        clear()
+    End Sub
+
+    Private Sub BtnClose_Click_1(sender As Object, e As EventArgs) Handles BtnClose.Click
+        Me.Close()
+        frmDashBoard.Show()
+    End Sub
+End Class

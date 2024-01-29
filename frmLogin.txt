@@ -1,0 +1,55 @@
+Imports System.Data.OleDb
+Public Class frmLogIn
+    Dim Username As String
+    Dim Password As String
+    Private Sub frmLogIn_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+        Call connection()
+    End Sub
+    Private Sub BtnLogIn_Click(sender As Object, e As EventArgs) Handles BtnLogIn.Click
+        Username = TxtUsername.Text
+        Password = TxtPassword.Text
+
+        sql = "Select * from qryUsers where Username='" & TxtUsername.Text & "' and Password='" & TxtPassword.Text & "'"
+        cmd = New OleDbCommand(sql, cn)
+        dr = cmd.ExecuteReader
+
+        If dr.Read() Then ' Check if existing
+            Dim Role As String = dr("Role").ToString()
+            Dim FirstName As String = dr("FirstName").ToString()
+
+            Select Case Role
+
+                Case "IT"
+                    frmDashBoard.TssEmployeeName.Text = dr("Firstname").ToString & " " & dr("Lastname").ToString
+                    frmDashBoard.TssPosition.Text = dr("Role").ToString
+                    frmDashBoard.TssUsername.Text = Username
+                    MsgBox("Hello, Admin " & FirstName & "!", vbInformation, "Successful Login!")
+                    frmPOS.LblCashier.Text = dr("Firstname").ToString & " " & dr("Lastname").ToString
+                    ActLogs("Logged In")
+                    frmDashBoard.Show()
+                    Me.Hide()
+
+                Case "Manager"
+                    frmUserDashboard.TssEmployeeName.Text = dr("Firstname").ToString & " " & dr("Lastname").ToString
+                    frmUserDashboard.TssPosition.Text = dr("Role").ToString
+                    frmUserDashboard.TssUsername.Text = dr("Username").ToString
+                    MsgBox("Hello, Manager " & FirstName & "!", vbInformation, "Successful Login!")
+                    frmPOS.LblCashier.Text = dr("Firstname").ToString & " " & dr("Lastname").ToString
+                    ActLogs("Logged In")
+                    frmUserDashboard.Show()
+                    Me.Hide()
+
+                Case "Cashier"
+                    MsgBox("Hello, Cashier " & FirstName & "!", vbInformation, "Successful Login!")
+                    frmPOS.LblCashier.Text = dr("Firstname").ToString & " " & dr("Lastname").ToString
+                    ActLogs("Logged In")
+                    frmPOS.Show()
+                    Me.Hide()
+            End Select
+        End If
+    End Sub
+
+    Private Sub BtnClose_Click(sender As Object, e As EventArgs) Handles BtnClose.Click
+        Me.Hide()
+    End Sub
+End Class

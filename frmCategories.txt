@@ -1,0 +1,100 @@
+Imports System.Data.OleDb
+
+Public Class frmCategories
+    Private Sub frmCategories_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+        Call connection()
+        LoadCateg()
+    End Sub
+    Private Sub btnClose_Click(sender As Object, e As EventArgs) Handles BtnClose.Click
+        Me.Close()
+    End Sub
+    Private Sub LoadCateg()
+        sql = "Select * from tblCategories"
+        cmd = New OleDbCommand(sql, cn)
+        dr = cmd.ExecuteReader
+        Dim x As ListViewItem
+        ListView1.Items.Clear()
+        Do While dr.Read = True
+            x = New ListViewItem(dr("CategoryID").ToString)
+            x.SubItems.Add(dr("Category").ToString)
+            ListView1.Items.Add(x)
+        Loop
+    End Sub
+    Private Sub ListView1_SelectedIndexChanged(sender As Object, e As EventArgs) Handles ListView1.SelectedIndexChanged
+        If ListView1.SelectedItems.Count > 0 Then
+            TxtCategoryID.Text = ListView1.SelectedItems(0).SubItems(0).Text
+        End If
+    End Sub
+    Private Sub txtCategID_TextChanged(sender As Object, e As EventArgs) Handles TxtCategoryID.TextChanged
+        sql = "Select Category from tblCategories where CategoryID='" & TxtCategoryID.Text & "'"
+        cmd = New OleDbCommand(sql, cn)
+        dr = cmd.ExecuteReader
+        If dr.Read = True Then
+            TxtCategory.Text = dr("Category").ToString
+        End If
+    End Sub
+    Private Sub AddCateg()
+        sql = "Insert Into tblCategories ([CategoryID], [Category]) values ([@CategoryID], [@Category])"
+        cmd = New OleDbCommand(sql, cn)
+        With cmd
+            .Parameters.AddWithValue("[@CategoryID]", TxtCategoryID.Text)
+            .Parameters.AddWithValue("[@Category]", TxtCategory.Text)
+            .ExecuteNonQuery()
+        End With
+        MsgBox("Category Added!", MsgBoxStyle.Information, "Category")
+        ActLogs("Added Category")
+        clear()
+        LoadCateg()
+    End Sub
+    Private Sub CheckCateg()
+        sql = "Select CategoryID from tblCategories where CategoryID='" & TxtCategoryID.Text & "'"
+        cmd = New OleDbCommand(sql, cn)
+        dr = cmd.ExecuteReader
+        If dr.HasRows = True Then
+            MsgBox("Category already Exist", MsgBoxStyle.Exclamation)
+        ElseIf TxtCategoryID.Text = "" Or txtCategory.Text = "" Then
+            MsgBox("All fields are required!", vbCritical, "Error")
+            Return
+        Else
+            AddCateg()
+        End If
+    End Sub
+    Private Sub UpdateCateg()
+        sql = "Update tblCategories set [Category]=@Category where [CategoryID]=@CategoryID"
+        cmd = New OleDbCommand(sql, cn)
+        With cmd
+            .Parameters.AddWithValue("@Category", txtCategory.Text)
+            .Parameters.AddWithValue("@CategoryID", TxtCategoryID.Text)
+            .ExecuteNonQuery()
+        End With
+        MsgBox("Category Updated!", MsgBoxStyle.Information, "Category")
+        ActLogs("Updated Category")
+        clear()
+        LoadCateg()
+    End Sub
+    Private Sub clear()
+        TxtCategoryID.Clear()
+        TxtCategory.Clear()
+    End Sub
+    Private Sub btnClear_Click(sender As Object, e As EventArgs) Handles BtnClear.Click
+        clear()
+    End Sub
+    Private Sub btnSave_Click(sender As Object, e As EventArgs) Handles BtnSave.Click
+        If MsgBox("Are you sure you want to add new category?", vbQuestion + vbYesNo) = vbYes Then
+            If TxtCategoryID.Text = "" Or TxtCategory.Text = "" Then
+                MsgBox("Please fill all the information", MsgBoxStyle.Exclamation)
+            Else
+                CheckCateg()
+            End If
+        End If
+    End Sub
+    Private Sub btnUpdate_Click(sender As Object, e As EventArgs) Handles BtnUpdate.Click
+        If MsgBox("Are you sure you want to update category?", vbQuestion + vbYesNo) = vbYes Then
+            If TxtCategoryID.Text = "" Or TxtCategory.Text = "" Then
+                MsgBox("Please fill all the information", MsgBoxStyle.Exclamation)
+            Else
+                UpdateCateg()
+            End If
+        End If
+    End Sub
+End Class

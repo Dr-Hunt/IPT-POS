@@ -1,0 +1,38 @@
+Public Class frmDashBoard
+    Private Sub POSToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles POSToolStripMenuItem.Click
+        frmPOS.Show()
+        Me.Hide()
+    End Sub
+    Private Sub ProductsToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles ProductsToolStripMenuItem.Click
+        frmProducts.Show()
+    End Sub
+    Private Sub UsersToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles UsersToolStripMenuItem.Click
+        frmUsers.Show()
+    End Sub
+    Private Sub ActivityLogsToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles ActivityLogsToolStripMenuItem.Click
+        frmActivityLogs.Show()
+    End Sub
+    Private Sub BtnLogout_Click(sender As Object, e As EventArgs) Handles BtnLogout.Click
+        If MsgBox("Logout Now?", vbQuestion + vbYesNo) = vbYes Then
+            MsgBox("Thank You " & TssEmployeeName.Text & " ! ", MsgBoxStyle.Information, "USER LOGOUT")
+            ActLogs("Logged Out")
+            Me.Hide()
+            frmLogIn.Show()
+        End If
+    End Sub
+
+    Private Sub CategoriesToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles CategoriesToolStripMenuItem.Click
+        frmCategories.Show()
+        Me.Hide()
+    End Sub
+
+    Private Sub PaymentModeToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles PaymentModeToolStripMenuItem.Click
+        frmPayments.Show()
+        Me.Hide()
+    End Sub
+
+    Private Sub SalesToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles SalesToolStripMenuItem.Click
+        frmSalesReport.Show()
+        Me.Hide()
+    End Sub
+End Class

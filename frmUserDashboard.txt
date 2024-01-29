@@ -1,0 +1,20 @@
+Public Class frmUserDashboard
+    Private Sub POSToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles POSToolStripMenuItem.Click
+        frmPOS.Show()
+        Me.Hide()
+    End Sub
+    Private Sub SalesToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles SalesToolStripMenuItem.Click
+        frmSalesReport.Show()
+    End Sub
+    Private Sub ProductsToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles ProductsToolStripMenuItem.Click
+        frmProducts.ShowDialog()
+    End Sub
+    Private Sub BtnLogout_Click(sender As Object, e As EventArgs) Handles BtnLogout.Click
+        If MsgBox("Are you sure you want to Logout?", vbQuestion + vbYesNo) = vbYes Then
+            MsgBox("Thanks and Goodbye" & TssEmployeeName.Text & " ! " & " Have a nice day!!!", MsgBoxStyle.Information, "USER LOGOUT")
+            ActLogs("Logged Out")
+            Me.Hide()
+            frmLogIn.Show()
+        End If
+    End Sub
+End Class

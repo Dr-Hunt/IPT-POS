@@ -1,0 +1,19 @@
+Imports System.Data.OleDb
+Public Module ActivityLogs
+
+    Public Sub ActLogs(Action As String)
+        Call connection()
+        Dim Username As String = frmLogIn.TxtUsername.Text
+        Dim TsDate As String = Date.Now.ToString("yyyy-MM-dd")
+        Dim TsTime As String = Date.Now.ToString("HH:mm:ss")
+        sql = "INSERT INTO tblActLogs (Username, [Action],[TsDate], [TsTime]) VALUES (@Username, @Action, @TsDate, @TsTime)"
+        cmd = New OleDbCommand(sql, cn)
+        With cmd
+            .Parameters.AddWithValue("@Username", Username)
+            .Parameters.AddWithValue("@Action", Action)
+            .Parameters.AddWithValue("@TsDate", TsDate)
+            .Parameters.AddWithValue("@TsTime", TsTime)
+            .ExecuteNonQuery()
+        End With
+    End Sub
+End Module

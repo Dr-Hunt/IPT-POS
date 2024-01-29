@@ -1,0 +1,160 @@
+Imports System.Data.OleDb
+
+Public Class frmUsers
+    Private Sub BtnLogout_Click(sender As Object, e As EventArgs) Handles BtnLogout.Click
+        Me.Close()
+    End Sub
+
+    Private Sub frmUsers_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+        Call connection()
+        LoadUsers()
+    End Sub
+    Private Sub LoadUsers()
+        sql = "Select * from qryUsers"
+        cmd = New OleDbCommand(sql, cn)
+        dr = cmd.ExecuteReader
+        Dim x As ListViewItem
+        ListView1.Items.Clear()
+        Do While dr.Read = True
+            x = New ListViewItem(dr("Username").ToString)
+            x.SubItems.Add(dr("Firstname").ToString & " " & dr("Lastname").ToString)
+            x.SubItems.Add(dr("AccessLevel").ToString)
+            x.SubItems.Add(dr("Role").ToString)
+            x.SubItems.Add(dr("Password").ToString)
+            ListView1.Items.Add(x)
+        Loop
+        totalUsers()
+    End Sub
+    Private Sub SaveUser()
+        Dim roleID As String = "R0"
+        Select Case CboRole.Text
+            Case "IT"
+                roleID = "R1"
+            Case "Manager"
+                roleID = "R2"
+            Case "Cashier"
+                roleID = "R3"
+        End Select
+        sql = "Insert Into tblUsers([Username], [Lastname], [Firstname], [AccessLevel], [RoleID], [Password]) values ([@Username], [@Lastname], [@Firstname], [@AccessLevel], [@RoleID], [@Password])"
+        cmd = New OleDbCommand(sql, cn)
+        With cmd
+            .Parameters.AddWithValue("[@Username]", TxtUsername.Text)
+            .Parameters.AddWithValue("[@Password]", TxtPassword.Text)
+            .Parameters.AddWithValue("[@AccessLevel]", CboAccessLevel.Text)
+            .Parameters.AddWithValue("[@Lastname]", TxtLastName.Text)
+            .Parameters.AddWithValue("[@Firstname]", TxtFirstName.Text)
+            .Parameters.AddWithValue("[@RoleID]", roleID)
+            .ExecuteNonQuery()
+        End With
+        ActLogs("Added a new user")
+        clear()
+    End Sub
+    Private Sub UpdateUser()
+        Dim roleID As String = "R0"
+        Select Case CboRole.Text
+            Case "IT"
+                roleID = "R1"
+            Case "Manager"
+                roleID = "R2"
+            Case "Cashier"
+                roleID = "R3"
+        End Select
+        sql = "Update tblUser set  Lastname=@Lastname, Firstname=@Firstname, AccessLevel=@AccessLevel, RoleID=@RoleID, Password=@Password where Username=@Username"
+        cmd = New OleDbCommand(sql, cn)
+        With cmd
+            .Parameters.AddWithValue("[@Username]", TxtUsername.Text)
+            .Parameters.AddWithValue("[@Password]", TxtPassword.Text)
+            .Parameters.AddWithValue("[@AccessLevel]", CboAccessLevel.Text)
+            .Parameters.AddWithValue("[@Lastname]", TxtLastName.Text)
+            .Parameters.AddWithValue("[@Firstname]", TxtFirstName.Text)
+            .Parameters.AddWithValue("[@RoleID]", roleID)
+            .ExecuteNonQuery()
+        End With
+        ActLogs("Updated user info")
+        clear()
+    End Sub
+    Private Sub CheckUser()
+        sql = "Select Username from tblUsers where Username='" & TxtUsername.Text & "'"
+        cmd = New OleDbCommand(sql, cn)
+        dr = cmd.ExecuteReader
+        If dr.HasRows = True Then
+            MsgBox("User already Exist", MsgBoxStyle.Exclamation)
+        ElseIf TxtUsername.Text = "" Or TxtPassword.Text = "" Or TxtConfirmPassword.Text = "" Or TxtLastName.Text = "" Or TxtFirstName.Text = "" Then
+            MsgBox("All fields are required!", vbCritical, "Error")
+            Return
+        Else
+            SaveUser()
+        End If
+    End Sub
+    Private Sub btnSave_Click(sender As Object, e As EventArgs) Handles BtnSave.Click
+        If MsgBox("Are you sure you want to add new user?", vbQuestion + vbYesNo) = vbYes Then
+            If TxtUsername.Text = "" Or TxtPassword.Text = "" Or TxtConfirmPassword.Text = "" Or TxtLastName.Text = "" Or TxtFirstName.Text = "" Then
+                MsgBox("Please fill all the information", MsgBoxStyle.Exclamation)
+            ElseIf TxtPassword.Text <> TxtConfirmPassword.Text Then
+                MsgBox("Password and Confirm Password mismatched!!")
+            Else
+                CheckUser()
+            End If
+        End If
+    End Sub
+    Private Sub clear()
+        TxtFirstName.Clear()
+        TxtLastName.Clear()
+        TxtPassword.Clear()
+        TxtSearch.Clear()
+        TxtUsername.Clear()
+        TxtConfirmPassword.Clear()
+        CboAccessLevel.Text = " "
+        CboRole.Text = " "
+    End Sub
+    Private Sub btnClear_Click(sender As Object, e As EventArgs) Handles BtnClear.Click
+        clear()
+    End Sub
+    Private Sub btnUpdate_Click(sender As Object, e As EventArgs) Handles BtnUpdate.Click
+        If MsgBox("Are you sure you want to update user info?", vbQuestion + vbYesNo) = vbYes Then
+            If TxtUsername.Text = "" Or TxtPassword.Text = "" Or TxtConfirmPassword.Text = "" Or TxtLastName.Text = "" Or TxtFirstName.Text = "" Then
+                MsgBox("Please fill all the information", MsgBoxStyle.Exclamation)
+            ElseIf TxtPassword.Text <> TxtConfirmPassword.Text Then
+                MsgBox("Password and Confirm Password mismatched!!")
+            Else
+                UpdateUser()
+            End If
+        End If
+    End Sub
+    Private Sub txtUsername_TextChanged(sender As Object, e As EventArgs) Handles TxtUsername.TextChanged
+        sql = "Select Lastname, Firstname, AccessLevel, Role, Password from qryUsers where Username='" & TxtUsername.Text & "'"
+        cmd = New OleDbCommand(sql, cn)
+        dr = cmd.ExecuteReader
+        If dr.Read = True Then
+            TxtLastName.Text = dr("Lastname").ToString
+            TxtFirstName.Text = dr("Firstname").ToString
+            CboAccessLevel.Text = dr("AccessLevel").ToString
+            CboRole.Text = dr("Role").ToString
+            TxtPassword.Text = dr("Password").ToString
+        End If
+    End Sub
+    Private Sub txtSearch_TextChanged(sender As Object, e As EventArgs) Handles TxtSearch.TextChanged
+        sql = "Select * from qryUsers where Username like '&" & TxtSearch.Text & "%' or Lastname like '%" & TxtSearch.Text & "%' or Firstname like '%" & TxtSearch.Text & "%'"
+        cmd = New OleDbCommand(sql, cn)
+        dr = cmd.ExecuteReader
+        Dim x As ListViewItem
+        ListView1.Items.Clear()
+        Do While dr.Read = True
+            x = New ListViewItem(dr("Username").ToString)
+            x.SubItems.Add(dr("Firstname").ToString & " " & dr("Lastname").ToString)
+            x.SubItems.Add(dr("AccessLevel").ToString)
+            x.SubItems.Add(dr("Role").ToString)
+            x.SubItems.Add(dr("Password").ToString)
+            ListView1.Items.Add(x)
+        Loop
+        totalUsers()
+    End Sub
+    Private Sub totalUsers()
+        LblTotal.Text = ListView1.Items.Count.ToString()
+    End Sub
+    Private Sub ListView1_SelectedIndexChanged(sender As Object, e As EventArgs) Handles ListView1.SelectedIndexChanged
+        If ListView1.SelectedItems.Count > 0 Then
+            TxtUsername.Text = ListView1.SelectedItems(0).SubItems(0).Text
+        End If
+    End Sub
+End Class

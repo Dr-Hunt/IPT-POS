@@ -1,0 +1,214 @@
+Imports System.Data.OleDb
+Imports System.Runtime.CompilerServices.RuntimeHelpers
+Imports System.Windows.Forms.VisualStyles.VisualStyleElement
+Public Class frmPOS
+    Dim Lview As ListViewItem
+    Dim Amount As Double
+    Private Sub frmPOS_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+        Call connection()
+        getTransactionNum()
+    End Sub
+    Private Sub Timer1_Tick(sender As Object, e As EventArgs) Handles Timer1.Tick
+        LblDate.Text = Now.ToShortDateString
+        LblTime.Text = Now.ToShortTimeString
+    End Sub
+    Private Sub getTransactionNum()
+        sql = "Select TransNo From tblTransactions Order by TransNo desc"
+        cmd = New OleDbCommand(sql, cn)
+        dr = cmd.ExecuteReader
+        If dr.Read = True Then
+            LblTransactionNo.Text = Val(dr(0)) + 1
+        Else
+            LblTransactionNo.Text = 1000001
+        End If
+    End Sub
+    Private Sub clear()
+        TxtProduct.Clear()
+        TxtAmount.Clear()
+        TxtCritical.Clear()
+        TxtQuantity.Clear()
+        LblStatus.Text = "******"
+    End Sub
+    Private Sub btnAdd_Click(sender As Object, e As EventArgs) Handles BtnAdd.Click
+        Dim a As String = InputBox("Enter number of products?", "Quantity")
+        If a = "" Or a = 0 Then
+            MsgBox("Please enter number of products")
+        Else
+            If Val(a) > Val(TxtQuantity.Text) Then
+                MsgBox("Number of products is greater than the available products", MsgBoxStyle.Exclamation, "Re-enter number of products")
+            Else
+                TxtQuantity.Text = Val(TxtQuantity.Text) - Val(a)
+                Amount = Val(TxtAmount.Text) * Val(a)
+                Lview = Me.ListView1.Items.Add(TxtProductCode.Text) 'product code
+                Lview.SubItems.Add(TxtProduct.Text) 'product name
+                Lview.SubItems.Add(TxtAmount.Text) 'amount
+                Lview.SubItems.Add(a) 'quantity from the user input
+                Lview.SubItems.Add(Amount) 'subtotal amount
+                If Val(TxtQuantity.Text) = 0 Then 'if the quantity reaches 0
+                    LblStatus.Text = "OUT OF STOCK"
+                ElseIf Val(TxtQuantity.Text) <= Val(TxtCritical.Text) Then 'if quantity reaches the value of critical level or lower
+                    LblStatus.Text = "CRITICAL LEVEL"
+                End If
+            End If
+        End If
+        GetTotal()
+        GetTotalItem()
+        getVAT()
+    End Sub
+    Private Sub GetTotal()
+        Const col As Integer = 4 'subTotal column
+        Dim total As Integer
+        Dim lvsi As ListViewItem.ListViewSubItem
+        For i As Integer = 0 To ListView1.Items.Count - 1
+            lvsi = ListView1.Items(i).SubItems(col)
+            total += Double.Parse(lvsi.Text)
+        Next
+        LblGrandTotal.Text = Format(Val(total), "0.00")
+    End Sub
+    Private Sub GetTotalItem()
+        Const col As Integer = 3 'quantity column
+        Dim total As Integer
+        Dim lvsi As ListViewItem.ListViewSubItem
+        For i As Integer = 0 To ListView1.Items.Count - 1
+            lvsi = ListView1.Items(i).SubItems(col)
+            total += Double.Parse(lvsi.Text)
+        Next
+        LblTotalProducts.Text = Val(total)
+    End Sub
+    Private Sub btnRemove_Click(sender As Object, e As EventArgs) Handles BtnRemove.Click
+        If MsgBox("Are your sure you want to Remove Product?", vbQuestion + vbYesNo) = vbYes Then
+            If ListView1.Items.Count = 0 Then
+                MsgBox("No Products on the list", MsgBoxStyle.Critical)
+            Else
+                If ListView1.SelectedItems.Count > 0 Then
+                    Dim lvalue As Integer = Integer.Parse(ListView1.SelectedItems(0).SubItems(3).Text)
+                    Dim newQty As Integer = lvalue + Val(TxtQuantity.Text)
+                    TxtQuantity.Text = newQty
+                    ListView1.Items.Remove(ListView1.FocusedItem)
+                    If Val(TxtQuantity.Text) > Val(TxtCritical.Text) Then
+                        LblStatus.Text = "AVAILABLE"
+                    End If
+                    GetTotalItem()
+                    GetTotal()
+                    getVAT()
+                End If
+            End If
+        End If
+    End Sub
+    Private Sub btnPayment_Click(sender As Object, e As EventArgs) Handles BtnPayment.Click
+        frmPayments.Show()
+        frmPayments.LblGrandTotal.Text = Me.LblGrandTotal.Text
+    End Sub
+    Private Sub getVAT()
+        Dim VatableSales As Double
+        VatableSales = LblGrandTotal.Text / 1.12
+        LblVat.Text = Format(Val(VatableSales), "0.00")
+        LblVatableSales.Text = Val(LblGrandTotal.Text) - Val(LblVat.Text)
+    End Sub
+
+    Private Sub SaveTransact()
+        sql = "Insert into tblTransactions(TransNo,TransDate,TransTime,TotalAmount,VAT,VatableSales,Discount,DiscountType,CashierName)values(@TransNo,@TransDate,@TransTime,@TotalAmount,@VAT,@VatableSales,@Discount,@DiscountType,@CashierName)"
+        cmd = New OleDbCommand(sql, cn)
+        With cmd
+            .Parameters.AddWithValue("@TransNo", LblTransactionNo.Text)
+            .Parameters.AddWithValue("@TransDate", LblDate.Text)
+            .Parameters.AddWithValue("@TransTime", LblTime.Text)
+            .Parameters.AddWithValue("@TotalAmount", LblGrandTotal.Text)
+            .Parameters.AddWithValue("@VAT", LblVat.Text)
+            .Parameters.AddWithValue("@VatableSales", LblVatableSales.Text)
+            .Parameters.AddWithValue("@Discount", LblDiscount.Text)
+            .Parameters.AddWithValue("@DiscountType", CboDiscountType.Text)
+            .Parameters.AddWithValue("@CashierName", LblCashier.Text)
+            .ExecuteNonQuery()
+        End With
+        For Each i As ListViewItem In ListView1.Items
+            sql = "Insert into tblTransactionDetails(TransNo,ProductCode,Amount,Qty,Total)Values(@TransNo,@ProductCode,@Amount,@Qty,@Total)"
+            cmd = New OleDbCommand(sql, cn)
+            With cmd
+                .Parameters.AddWithValue("@TransNo", LblTransactionNo.Text)
+                .Parameters.AddWithValue("@ProductCode", i.Text) 'FIRST COLUMN OF THE LISTVIEW
+                .Parameters.AddWithValue("@Amount", i.SubItems(2).Text) '3RD COLUMN
+                .Parameters.AddWithValue("@Qty", i.SubItems(3).Text) '4TH COLUMN
+                .Parameters.AddWithValue("@Total", i.SubItems(4).Text) '5TH COLUMN
+                .ExecuteNonQuery()
+            End With
+        Next
+        sql = "Insert into tblPayments(TransNo,TotalAmount,AmountPaid,AmountChange,MOP,RefNo)Values(@TransNo,@TotalAmount,@AmountPaid,@AmountChange,@MOP,@RefNo)"
+        cmd = New OleDbCommand(sql, cn)
+        With cmd
+            .Parameters.AddWithValue("@TransNo", LblTransactionNo.Text)
+            .Parameters.AddWithValue("@TotalAmount", LblGrandTotal.Text)
+            .Parameters.AddWithValue("@AmountPaid", LblAmountPaid.Text)
+            .Parameters.AddWithValue("@AmountChange", LblChange.Text)
+            .Parameters.AddWithValue("@MOP", LblMode.Text)
+            .Parameters.AddWithValue("@RefNo", LblReferenceNo.Text)
+            .ExecuteNonQuery()
+        End With
+        MsgBox("Transaction Successfully Saved", MsgBoxStyle.Information)
+        ActLogs("Saved New Transaction")
+        ListView1.Items.Clear()
+        ResetCurrency()
+        getTransactionNum()
+        clear()
+    End Sub
+    Private Sub btnSave_Click(sender As Object, e As EventArgs) Handles BtnSave.Click
+        If MsgBox("Save Transaction?", vbQuestion + vbYesNo) = vbYes Then
+
+            If Val(LblAmountPaid.Text) < Val(LblGrandTotal.Text) Then
+                MsgBox("Insufficient Amount", MsgBoxStyle.Critical, "Please Re-Enter Payment")
+            Else
+                SaveTransact()
+            End If
+        End If
+    End Sub
+    Private Sub ResetCurrency()
+        LblAmountPaid.Text = "0.00"
+        LblVat.Text = "0.00"
+        LblVatableSales.Text = "0.00"
+        LblTotalProducts.Text = "0.00"
+        LblMode.Text = "******"
+        LblDiscount.Text = "0.00"
+        LblReferenceNo.Text = "*****"
+        LblGrandTotal.Text = "0.00"
+        LblChange.Text = "0.00"
+    End Sub
+    Private Sub btnCancel_Click(sender As Object, e As EventArgs) Handles BtnCancel.Click
+        Call ResetText()
+        Call clear()
+        ListView1.Items.Clear()
+        Call ResetCurrency()
+    End Sub
+    Private Sub btnLogout_Click(sender As Object, e As EventArgs) Handles BtnLogout.Click
+        If MsgBox("Are you sure you want to Logout?", vbQuestion + vbYesNo) = vbYes Then
+            MsgBox("Thank You" & LblCashier.Text & " ! ", MsgBoxStyle.Information, "USER LOGOUT")
+            ActLogs("Logged Out")
+            Me.Hide()
+            frmLogIn.Show()
+        End If
+    End Sub
+    Private Sub TxtProductCode_TextChanged(sender As Object, e As EventArgs) Handles TxtProductCode.TextChanged
+        sql = "Select ProdName,Amount,Quantity,CriticalLevel,Status from qryProducts where ProductCode='" & TxtProductCode.Text & "' and Quantity>'0'"
+        cmd = New OleDbCommand(sql, cn)
+        dr = cmd.ExecuteReader
+        If dr.Read = True Then
+            TxtProduct.Text = dr("ProdName")
+            TxtAmount.Text = dr("Amount")
+            TxtQuantity.Text = dr("Quantity")
+            TxtCritical.Text = dr("CriticalLevel")
+            LblStatus.Text = dr("Status")
+        Else
+            MsgBox("Item not found or out of stock", MsgBoxStyle.Critical)
+            clear()
+        End If
+    End Sub
+
+    Private Sub CboDiscountType_SelectedIndexChanged(sender As Object, e As EventArgs) Handles CboDiscountType.SelectedIndexChanged
+        Dim Discount, NewTotal As Double
+        Discount = Val(LblGrandTotal.Text) * 0.2
+        LblDiscount.Text = Format(Val(Discount), "0.00")
+        NewTotal = Val(LblGrandTotal.Text) - Val(LblDiscount.Text)
+        LblGrandTotal.Text = Format(Val(NewTotal), "0.00")
+        LblVat.Text = "0.00"
+        LblVatableSales.Text = "0.00"
+    End Sub
+End Class

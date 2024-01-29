@@ -1,0 +1,63 @@
+Imports System.Data.OleDb
+Public Class frmPayments
+    Private Sub frmPayments_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+        Call connection()
+        LoadModeOfPayment()
+    End Sub
+
+    Private Sub LoadModeOfPayment()
+        'GETS THE PAYMENT MODE ON THE DATABASE TABLE
+        sql = "Select distinct PaymentMode from tblPaymentMode where status='1'"
+        cmd = New OleDbCommand(sql, cn)
+        Dim da As New OleDbDataAdapter(cmd)
+        Dim dt As New DataTable
+        da.Fill(dt)
+        CboMOP.DataSource = dt
+        CboMOP.DisplayMember = "PaymentMode"
+    End Sub
+
+    Private Sub cboMOP_SelectedIndexChanged(sender As Object, e As EventArgs) Handles CboMOP.SelectedIndexChanged
+        If CboMOP.Text = "Cash" Then
+            TxtReferenceNo.ReadOnly = True
+            TxtAmountPaid.Clear()
+            TxtAmountPaid.Enabled = True
+        Else
+            TxtReferenceNo.ReadOnly = False
+            TxtAmountPaid.Text = LblGrandTotal.Text
+            LblChange.Text = "0.00"
+            TxtAmountPaid.Enabled = False
+        End If
+    End Sub
+
+    Private Sub TxtAmountPaid_TextChanged(sender As Object, e As EventArgs) Handles TxtAmountPaid.TextChanged
+        Dim change As Double
+        change = Val(TxtAmountPaid.Text) - Val(LblGrandTotal.Text)
+        LblChange.Text = Format(Val(change), "0.00")
+    End Sub
+
+    Private Sub BtnEnter_Click(sender As Object, e As EventArgs) Handles BtnEnter.Click
+        If Val(TxtAmountPaid.Text) < Val(LblGrandTotal.Text) Then
+            MsgBox("Insufficient", MsgBoxStyle.Critical)
+        Else
+            frmPOS.LblAmountPaid.Text = Me.TxtAmountPaid.Text
+            frmPOS.LblChange.Text = Me.LblChange.Text
+            frmPOS.LblMode.Text = Me.CboMOP.Text
+            frmPOS.LblReferenceNo.Text = Me.TxtReferenceNo.Text
+            Me.Close()
+        End If
+    End Sub
+
+    Private Sub AddMOP_Click(sender As Object, e As EventArgs) Handles AddMOP.Click
+        Dim a As String = InputBox("Enter mode of payment")
+        sql = "Insert into tblPaymentMode(PaymentMode,Status)values(@PaymentMode,@Status)"
+        cmd = New OleDbCommand(sql, cn)
+        With cmd
+            .Parameters.AddWithValue("@PaymentMode", a)
+            .Parameters.AddWithValue("@Status", "1")
+            .ExecuteNonQuery()
+        End With
+    End Sub
+    Private Sub BtnLogout_Click(sender As Object, e As EventArgs) Handles BtnLogout.Click
+        Me.Hide()
+    End Sub
+End Class
